@@ -4,6 +4,8 @@
 
 #include "vad.h"
 
+//MI HOLA ES MEJOR
+
 const float FRAME_TIME = 10.0F; /* in ms. */
 
 /* 
