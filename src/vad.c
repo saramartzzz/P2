@@ -79,7 +79,7 @@ unsigned int vad_frame_size(VAD_DATA *vad_data) {
  * using a Finite State Automata
  */
 
-VAD_STATE vad(VAD_DATA *vad_data, float *x) {
+VAD_STATE vad(VAD_DATA *vad_data, float *x) { //bucle --> es crida una vegada per trama de senyal
 
   /* 
    * TODO: You can change this, using your own features,
