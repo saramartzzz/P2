@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 #include "vad.h"
-
+//HOLA SARA
 const float FRAME_TIME = 10.0F; /* in ms. */
 
 /* 
