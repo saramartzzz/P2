@@ -4,8 +4,6 @@
 
 #include "vad.h"
 
-//MI HOLA ES MEJOR
-
 const float FRAME_TIME = 10.0F; /* in ms. */
 
 /* 
@@ -52,7 +50,7 @@ Features compute_features(const float *x, int N) {
  * TODO: Init the values of vad_data
  */
 
-VAD_DATA * vad_open(float rate) {
+VAD_DATA * vad_open(float rate,float alpha1, float alpha2) {
   VAD_DATA *vad_data = malloc(sizeof(VAD_DATA));
   vad_data->state = ST_INIT;
   vad_data->sampling_rate = rate;
@@ -79,7 +77,7 @@ unsigned int vad_frame_size(VAD_DATA *vad_data) {
  * using a Finite State Automata
  */
 
-VAD_STATE vad(VAD_DATA *vad_data, float *x) { //bucle --> es crida una vegada per trama de senyal
+VAD_STATE vad(VAD_DATA *vad_data, float *x) {
 
   /* 
    * TODO: You can change this, using your own features,

@@ -5,6 +5,7 @@
 
 #include "vad.h"
 #include "vad_docopt.h"
+#include  "pav_analysis.h"
 
 #define DEBUG_VAD 0x1
 
@@ -24,6 +25,8 @@ int main(int argc, char *argv[]) {
   float frame_duration;   /* in seconds */
   unsigned int t, last_t; /* in frames */
 
+  float alpha1;
+  float alpha2;
   char	*input_wav, *output_vad, *output_wav;
 
   DocoptArgs args = docopt(argc, argv, /* help */ 1, /* version */ "2.0");
@@ -32,7 +35,9 @@ int main(int argc, char *argv[]) {
   input_wav  = args.input_wav;
   output_vad = args.output_vad;
   output_wav = args.output_wav;
-
+  alpha1     = atof(args.alpha1); //cadena de text a real (terminal, vale Sara?)
+  alpha2     = atof(args.alpha2);
+  
   if (input_wav == 0 || output_vad == 0) {
     fprintf(stderr, "%s\n", args.usage_pattern);
     return -1;
@@ -63,7 +68,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  vad_data = vad_open(sf_info.samplerate);
+  vad_data = vad_open(sf_info.samplerate,alpha1,alpha2);
   /* Allocate memory for buffers */
   frame_size   = vad_frame_size(vad_data);
   buffer       = (float *) malloc(frame_size * sizeof(float));
