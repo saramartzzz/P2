@@ -5,7 +5,7 @@
 float compute_power(const float *x, unsigned int N) { // x és vector
     int i;
     float op, power_DB;
-    op=1.e-4;
+    op = 1.e-4;
     for (i = 0; i < N; i++) op = op + pow(x[i],2);
     power_DB = 10*log10(op/N);
     return power_DB;

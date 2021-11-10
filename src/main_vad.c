@@ -27,6 +27,7 @@ int main(int argc, char *argv[]) {
 
   float alpha1;
   float alpha2;
+  int total_trames;
   char	*input_wav, *output_vad, *output_wav;
 
   DocoptArgs args = docopt(argc, argv, /* help */ 1, /* version */ "2.0");
@@ -37,6 +38,7 @@ int main(int argc, char *argv[]) {
   output_wav = args.output_wav;
   alpha1     = atof(args.alpha1); //cadena de text a real (terminal, vale Sara?)
   alpha2     = atof(args.alpha2);
+  total_trames = atof(args.total_trames);
   
   if (input_wav == 0 || output_vad == 0) {
     fprintf(stderr, "%s\n", args.usage_pattern);
@@ -68,7 +70,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  vad_data = vad_open(sf_info.samplerate,alpha1,alpha2);
+  vad_data = vad_open(sf_info.samplerate,alpha1,alpha2,total_trames);
   /* Allocate memory for buffers */
   frame_size   = vad_frame_size(vad_data);
   buffer       = (float *) malloc(frame_size * sizeof(float));
@@ -77,6 +79,7 @@ int main(int argc, char *argv[]) {
 
   frame_duration = (float) frame_size/ (float) sf_info.samplerate;
   last_state = ST_UNDEF;
+  printf("%d \n",total_trames);
 
   for (t = last_t = 0; ; t++) { /* For each frame ... */
     /* End loop when file has finished (or there is an error) */
@@ -86,7 +89,22 @@ int main(int argc, char *argv[]) {
       /* TODO: copy all the samples into sndfile_out */
     }
 
+    vad_data->num_trames += 1 ;
+    
     state = vad(vad_data, buffer);
+    
+
+    if(state==ST_MAYBE_SILENCE){
+      vad_data->num_trames_maybe_s += 1 ;
+    }
+
+    if(state==ST_MAYBE_VOICE){
+      vad_data->num_trames_maybe_v += 1 ;
+    }
+
+
+
+    
     if (verbose & DEBUG_VAD) vad_show_state(vad_data, stdout);
 
     /* TODO: print only SILENCE and VOICE labels */
@@ -94,6 +112,7 @@ int main(int argc, char *argv[]) {
     if (state != last_state) {
       if (t != last_t)
         fprintf(vadfile, "%.5f\t%.5f\t%s\n", last_t * frame_duration, t * frame_duration, state2str(last_state));
+        
       last_state = state;
       last_t = t;
     }
