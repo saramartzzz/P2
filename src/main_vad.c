@@ -28,6 +28,7 @@ int main(int argc, char *argv[]) {
   float alpha1;
   float alpha2;
   int total_trames;
+  int w;
   char	*input_wav, *output_vad, *output_wav;
 
   DocoptArgs args = docopt(argc, argv, /* help */ 1, /* version */ "2.0");
@@ -39,6 +40,8 @@ int main(int argc, char *argv[]) {
   alpha1     = atof(args.alpha1); //cadena de text a real (terminal, vale Sara?)
   alpha2     = atof(args.alpha2);
   total_trames = atof(args.total_trames);
+  w = atof(args.window);
+
   
   if (input_wav == 0 || output_vad == 0) {
     fprintf(stderr, "%s\n", args.usage_pattern);
@@ -70,7 +73,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  vad_data = vad_open(sf_info.samplerate,alpha1,alpha2,total_trames);
+  vad_data = vad_open(sf_info.samplerate, alpha1, alpha2, total_trames, w);
   /* Allocate memory for buffers */
   frame_size   = vad_frame_size(vad_data);
   buffer       = (float *) malloc(frame_size * sizeof(float));

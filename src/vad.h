@@ -19,18 +19,20 @@ typedef struct {
   //variables creades
   float p0,p1,p2;
   float alpha1, alpha2;
-  int total_trames;
+  //comptadors
   unsigned int num_trames; // per comptar nivell de soroll de fons
   unsigned int num_trames_maybe_v; 
   unsigned int num_trames_maybe_s; 
-
+  //lindars
+  int total_trames;
+  int w; //paràmetres dels maybe
 } VAD_DATA;
 
 /* Call this function before using VAD: 
    It should return allocated and initialized values of vad_data
 
    sampling_rate: ... the sampling rate */
-VAD_DATA *vad_open(float sampling_rate, float alpha1, float alpha2, int total_trames);
+VAD_DATA *vad_open(float rate, float alpha1, float alpha2, int total_trames, int w);
 
 /* vad works frame by frame.
    This function returns the frame size so that the program knows how

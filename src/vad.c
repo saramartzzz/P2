@@ -46,21 +46,24 @@ Features compute_features(const float *x, int N) {
  * TODO: Init the values of vad_data
  */
 
-VAD_DATA * vad_open(float rate,float alpha1, float alpha2, int total_trames) { //inicialitza variables
+VAD_DATA * vad_open(float rate, float alpha1, float alpha2, int total_trames, int w) { //inicialitza variables
   VAD_DATA *vad_data = malloc(sizeof(VAD_DATA));
   vad_data->state = ST_INIT;
   vad_data->sampling_rate = rate;
-  vad_data->frame_length = rate * FRAME_TIME * 1e-3;
-
+  vad_data->frame_length = rate * FRAME_TIME * 1e-3;  
+  //inicilitzaem comptadors
   vad_data->num_trames = 0;
   vad_data->num_trames_maybe_v = 0;
   vad_data->num_trames_maybe_s = 0;
 
 
-
+  //inicialitzem llindars
   vad_data->alpha1 = alpha1;
   vad_data->alpha2 = alpha2;
   vad_data->total_trames=total_trames;
+  vad_data->w =w;
+
+
   return vad_data;
 }
 
@@ -95,24 +98,27 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
 
   switch (vad_data->state) {
   case ST_INIT: //s'executen les ordres fins arribar al break
-    if(vad_data->num_trames <vad_data->total_trames){ //calcular soroll de fons
+    /*if(vad_data->num_trames <vad_data->total_trames){ //calcular soroll de fons
       power = power + pow(10,f.p/10);
       vad_data->state = ST_INIT;
-    }else{
-      
-    vad_data->p0 = 10*log10(power/vad_data->num_trames);
-    printf("%f\n",vad_data->p0);
-    vad_data-> p1 = vad_data->p0 + 0.3;//vad_data->alpha1; //definimos valor umbral 1
-    vad_data-> p2 = vad_data->p1 + 0.6;//vad_data->alpha2; //definimos valor umbral 2
-
+    }else{*/
+    printf("Estat incial\n") ;
+    vad_data->p0 =f.p; // 10*log10(power/vad_data->num_trames);
+    printf("P0: %f\n",vad_data->p0);
+    vad_data-> p1 = vad_data->p0 + vad_data->alpha1;//definimos valor umbral 1
+    vad_data-> p2 = vad_data->p1 + vad_data->alpha2;//definimos valor umbral 2
+    printf("P1= %f; P2= %f\n",vad_data->p1 , vad_data->p2);
     vad_data->state = ST_SILENCE;
     vad_data->num_trames = 0;
-   
-    } 
+    printf("Frame (mostres): %d\n", vad_data->frame_length);
+    printf("Sampling Rate: %f\n", vad_data->sampling_rate);
+
+    //} 
     break;
 
   case ST_SILENCE:
-    printf("%f\n",f.p);
+    printf("Estat S  ----- P = %f\n",f.p) ;
+    //printf("%f\n",f.p);
     if (f.p > vad_data->p1)
       vad_data->state = ST_MAYBE_VOICE;
     else
@@ -121,6 +127,7 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
     break;
 
   case ST_VOICE:
+ printf("Estat V  ----- P = %f\n",f.p) ;
     if (f.p < vad_data->p2)
       vad_data->state = ST_MAYBE_SILENCE;
     else
@@ -128,33 +135,43 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
     break;
 
     case ST_MAYBE_VOICE: //per sortir s'ha de complir condició temporal
-      //printf("Entro v\n");
-      if (vad_data->num_trames_maybe_v < 3){ //5 representa la ventana de análisis del maybe
-          if(f.p < vad_data->p1){
+    printf("Estat MV ----- P = %f\n", f.p);
+      /*if (vad_data->num_trames_maybe_v < vad_data->wmv){ //5 representa la ventana de análisis del maybe, ara és wmv
+          if(f.p < vad_data->p1)
             vad_data->state = ST_SILENCE;
-            vad_data->num_trames_maybe_v=0;
-          } else if (f.p > vad_data->p2 && vad_data->num_trames_maybe_v >= 1){ //3 representa el núm de tramas necesarias para confirmar voice
+            //vad_data->num_trames_maybe_v=0;
+           else if (f.p > vad_data->p2)// && vad_data->num_trames_maybe_v >= vad_data->minv){ //3 representa el núm de tramas necesarias para confirmar voice
              vad_data->state = ST_VOICE;
-             vad_data->num_trames_maybe_v=0;
-          } else {
+             //vad_data->num_trames_maybe_v=0;
+          else 
             vad_data->state = ST_MAYBE_VOICE;
-          }
-      }
+          
+      }*/
+
+    if(f.p>vad_data->p2)
+    vad_data->state = ST_VOICE;
+    if(f.p<vad_data->p1)
+    vad_data->state = ST_SILENCE;
+
     break;
 
     case ST_MAYBE_SILENCE: //per sortir s'ha de complir condició temporal
-     //printf("Entro s\n");
-      if (vad_data->num_trames_maybe_s < 3){ //5 representa la ventana de análisis del maybe
+    printf("Estat MS ----- P = %f\n", f.p);
+      /*if (vad_data->num_trames_maybe_s < vad_data->wms){ //5 representa la ventana de análisis del maybe
           if(f.p > vad_data->p2){
             vad_data->state = ST_VOICE;
             vad_data->num_trames_maybe_s=0;
-          } else if (f.p < vad_data->p1 && vad_data->num_trames_maybe_s >= 1){ //3 representa el núm de tramas necesarias para confirmar silenci (idem valor veu)
+          } else if (f.p < vad_data->p1 && vad_data->num_trames_maybe_s >= vad_data->mins){ //3 representa el núm de tramas necesarias para confirmar silenci (idem valor veu)
              vad_data->state = ST_SILENCE;
              vad_data->num_trames_maybe_s=0;
           } else {
             vad_data->state = ST_MAYBE_SILENCE;
           }
-      }
+      }*/
+    if(f.p>vad_data->p2)
+    vad_data->state = ST_VOICE;
+    if(f.p<vad_data->p1)
+    vad_data->state = ST_SILENCE;
     break;    
 
   case ST_UNDEF:
