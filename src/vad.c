@@ -38,7 +38,8 @@ Features compute_features(const float *x, int N) {
   
   Features feat;
   feat.p = compute_power(x,N);
-  //feat.zcr = feat.am = (float) rand()/RAND_MAX;
+  feat.zcr = compute_zcr(x,N,vad_data->sampling_rate);
+  // feat.am = (float) rand()/RAND_MAX;
   return feat;
 }
 
@@ -61,9 +62,8 @@ VAD_DATA * vad_open(float rate, float alpha1, float alpha2, int total_trames, in
   //inicialitzem llindars
   vad_data->alpha1 = alpha1;
   vad_data->alpha2 = alpha2;
-  vad_data->total_trames=total_trames;
-  vad_data->w =w;
-
+  vad_data->total_trames = total_trames;
+  //vad_data->w = w;
 
   return vad_data;
 }
@@ -98,18 +98,20 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
   vad_data->last_feature = f.p; /* save feature, in case you want to show */
 
   switch (vad_data->state) {
-  case ST_INIT: //s'executen les ordres fins arribar al break
+
+  case ST_INIT: //S'executen les ordres fins arribar al break
+    
     /*if(vad_data->num_trames <vad_data->total_trames){ //calcular soroll de fons
       power = power + pow(10,f.p/10);
       vad_data->state = ST_INIT;
     }else{*/
 
-    printf("Estat incial\n") ;
-    vad_data->p0 =f.p; // 10*log10(power/vad_data->num_trames);
+    printf("Estat incial\n");
+    vad_data->p0 = f.p; // 10*log10(power/vad_data->num_trames);
     printf("P0: %f\n",vad_data->p0);
     
-    vad_data-> p1 = vad_data->p0 + vad_data->alpha1;//definimos valor umbral 1
-    vad_data-> p2 = vad_data->p1 + vad_data->alpha2;//definimos valor umbral 2
+    vad_data-> p1 = vad_data->p0 + vad_data->alpha1; //Definimos valor umbral 1
+    vad_data-> p2 = vad_data->p1 + vad_data->alpha2; //Definimos valor umbral 2
     printf("P1= %f; P2= %f\n",vad_data->p1 , vad_data->p2);
     vad_data->state = ST_SILENCE;
     vad_data->num_trames = 0;
@@ -130,14 +132,14 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
     break;
 
   case ST_VOICE:
- printf("Estat V  ----- P = %f\n",f.p) ;
+    printf("Estat V  ----- P = %f\n",f.p) ;
     if (f.p < vad_data->p2)
       vad_data->state = ST_MAYBE_SILENCE;
     else
       vad_data->state = ST_VOICE;
     break;
 
-    case ST_MAYBE_VOICE: //per sortir s'ha de complir condició temporal
+  case ST_MAYBE_VOICE: //per sortir s'ha de complir condició temporal
     printf("Estat MV ----- P = %f  Tramas = %d\n", f.p, vad_data->num_trames);
     vad_data->num_trames += 1;
 
@@ -162,7 +164,7 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
     }
     break;
 
-    case ST_MAYBE_SILENCE: //per sortir s'ha de complir condició temporal
+  case ST_MAYBE_SILENCE: 
     printf("Estat MS ----- P = %f  Tramas = %d\n", f.p, vad_data->num_trames);
     vad_data->num_trames += 1;
       
