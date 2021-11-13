@@ -23,6 +23,11 @@ typedef struct {
   unsigned int num_trames; // per comptar nivell de soroll de fons
   unsigned int num_trames_maybe_v; 
   unsigned int num_trames_maybe_s; 
+  unsigned int num_trames_v; 
+  unsigned int num_trames_s;
+  unsigned int num_total_v; 
+  unsigned int num_total_s;
+  
   unsigned int trames_fons;
   //lindars
   int total_trames;

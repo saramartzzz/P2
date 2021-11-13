@@ -104,10 +104,14 @@ int main(int argc, char *argv[]) {
     // Aquí tenemos que jugar con el valor de la ventana del limbo, es decir, no es lo mismo cambiar de estado porque se 
     // cumple la condición de potencia que cambiar de estado porque se ha agotado el tiempo permitido en el maybe
     if (state != last_state) {
-      if ((last_state == ST_MAYBE_VOICE || last_state == ST_MAYBE_SILENCE) && state == ST_VOICE){
-        last_state = ST_VOICE;
-      } else if ((last_state == ST_MAYBE_SILENCE || last_state == ST_MAYBE_VOICE) && state == ST_SILENCE) {
+      if ((last_state == ST_MAYBE_SILENCE || last_state == ST_MAYBE_VOICE) && state == ST_SILENCE){
+        vad_data->num_total_s = vad_data->num_total_s + vad_data->num_trames_maybe_s + vad_data->num_trames_maybe_v + vad_data->num_trames_s;
         last_state = ST_SILENCE;
+        //last_state = ST_VOICE;
+      } else if ((last_state == ST_MAYBE_VOICE || last_state == ST_MAYBE_SILENCE) && state == ST_VOICE) {
+        vad_data->num_total_v = vad_data->num_total_v + vad_data->num_trames_maybe_v + vad_data->num_trames_maybe_s + vad_data->num_trames_v;
+        last_state = ST_VOICE;
+        //last_state = ST_SILENCE;
       } else if (last_state == ST_INIT){
         last_state = ST_SILENCE;
       }

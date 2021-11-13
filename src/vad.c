@@ -57,7 +57,12 @@ VAD_DATA * vad_open(float rate, float alpha1, float alpha2, int total_trames, in
   vad_data->num_trames = 0;
   vad_data->num_trames_maybe_v = 0;
   vad_data->num_trames_maybe_s = 0;
-  vad_data->trames_fons = 1;
+  vad_data->num_trames_v = 0;
+  vad_data->num_trames_s = 0;
+  vad_data->num_total_s = 0;
+  vad_data->num_total_v = 0;
+
+  //vad_data->trames_fons = 1;
 
 
   //inicialitzem llindars
@@ -101,7 +106,6 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
   switch (vad_data->state) {
 
   case ST_INIT: //S'executen les ordres fins arribar al break
-    
     vad_data->p0 = f.p; 
     printf("P0: %f\n",vad_data->p0);
 
@@ -122,8 +126,8 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
 
     printf("Estat incial\n");
   
-    vad_data-> p1 = vad_data->p0 + vad_data->alpha1; //Definimos valor umbral 1
-    vad_data-> p2 = vad_data->p1 + vad_data->alpha2; //Definimos valor umbral 2
+    vad_data-> p1 = vad_data->p0 + 0.5;//vad_data->alpha1; //Definimos valor umbral 1
+    vad_data-> p2 = vad_data->p1 + 8;//vad_data->alpha2; //Definimos valor umbral 2
     printf("P1= %f; P2= %f\n",vad_data->p1 , vad_data->p2);
     vad_data->state = ST_SILENCE;
     vad_data->num_trames = 0;
@@ -134,7 +138,11 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
     break;
 
   case ST_SILENCE:
-    printf("Estat S  ----- P = %f\n",f.p) ;
+    //printf("Main ----- Tramas V = %d\n", vad_data->num_total_v);
+    vad_data->num_total_v = 0;
+    vad_data->num_total_s += 1;
+    //printf("Estat S  ----- Tramas S = %d\n",vad_data->num_total_s);
+    
     //printf("%f\n",f.p);
     if (f.p > vad_data->p1)
       vad_data->state = ST_MAYBE_VOICE;
@@ -144,7 +152,10 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
     break;
 
   case ST_VOICE:
-    printf("Estat V  ----- P = %f\n",f.p) ;
+    //printf("Main ----- Tramas S = %d\n", vad_data->num_total_s);
+    vad_data->num_total_s = 0;
+    vad_data->num_total_v += 1;
+    //printf("Estat V  ----- Tramas V = %d\n",vad_data->num_total_v);
     if (f.p < vad_data->p2)
       vad_data->state = ST_MAYBE_SILENCE;
     else
@@ -152,24 +163,24 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
     break;
 
   case ST_MAYBE_VOICE: //per sortir s'ha de complir condició temporal
-    printf("Estat MV ----- P = %f  Tramas = %d\n", f.p, vad_data->num_trames);
+    //printf("Estat MV ----- P = %f  Tramas = %d\n", f.p, vad_data->num_trames);
     vad_data->num_trames += 1;
 
     if(f.p > vad_data->p2){
       
       vad_data->num_trames_maybe_v += 1;
-      printf("En MV ------> Tramas MV = %d\n", vad_data->num_trames_maybe_v);
+      //printf("En MV ------> Tramas MV = %d\n", vad_data->num_trames_maybe_v);
       vad_data->state = ST_MAYBE_VOICE;
     }
 
-    if (vad_data->num_trames_maybe_v == 3){
+    if (vad_data->num_trames_maybe_v == 2){
       
       vad_data->state = ST_VOICE;
       vad_data->num_trames_maybe_v = 0;
       vad_data->num_trames = 0;
     } 
 
-    if(f.p < vad_data->p1 || vad_data->num_trames == 3){ //Si es flsa alarma o si llevo en el limbo demasiados frames (3)
+    if(f.p < vad_data->p1 || vad_data->num_trames == 5){ //Si es flsa alarma o si llevo en el limbo demasiados frames (3)
       vad_data->state = ST_SILENCE;
       vad_data->num_trames_maybe_v = 0;
       vad_data->num_trames = 0;
@@ -177,23 +188,23 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
     break;
 
   case ST_MAYBE_SILENCE: 
-    printf("Estat MS ----- P = %f  Tramas = %d\n", f.p, vad_data->num_trames);
+    //printf("Estat MS ----- P = %f  Tramas = %d\n", f.p, vad_data->num_trames);
     vad_data->num_trames += 1;
       
     if(f.p < vad_data->p1){ //Cuento tramas mientras esté en MS
       
       vad_data->num_trames_maybe_s += 1;
-      printf("En MS ----> Tramas MS = %d\n", vad_data->num_trames_maybe_s) ;
+      //printf("En MS ----> Tramas MS = %d\n", vad_data->num_trames_maybe_s) ;
       vad_data->state = ST_MAYBE_SILENCE;
     }
 
-    if (vad_data->num_trames_maybe_s == 3){ //Supero 3 tramas en silencio
+    if (vad_data->num_trames_maybe_s == 2){ //Supero 3 tramas en silencio
       vad_data->state = ST_SILENCE;
       vad_data->num_trames_maybe_s = 0;
       vad_data->num_trames = 0;
     } 
 
-    if(f.p > vad_data->p2 || vad_data->num_trames == 3){ //Si es flsa alarma o si llevo en el limbo demasiados frames (3)
+    if(f.p > vad_data->p2 || vad_data->num_trames == 5){ //Si es flsa alarma o si llevo en el limbo demasiados frames (3)
       vad_data->state = ST_VOICE;
       vad_data->num_trames_maybe_s = 0;
       vad_data->num_trames = 0;
