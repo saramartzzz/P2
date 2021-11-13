@@ -92,27 +92,21 @@ int main(int argc, char *argv[]) {
       /* TODO: copy all the samples into sndfile_out */
     }
 
-    vad_data->num_trames += 1 ;
-    
+
     state = vad(vad_data, buffer);
-    
-
-    if(state==ST_MAYBE_SILENCE){
-      vad_data->num_trames_maybe_s += 1 ;
-    }
-
-    if(state==ST_MAYBE_VOICE){
-      vad_data->num_trames_maybe_v += 1 ;
-    }
-
-
-
+  
     
     if (verbose & DEBUG_VAD) vad_show_state(vad_data, stdout);
 
     /* TODO: print only SILENCE and VOICE labels */
     /* As it is, it prints UNDEF segments but is should be merge to the proper value */
     if (state != last_state) {
+      if ((last_state == ST_MAYBE_VOICE || last_state == ST_MAYBE_SILENCE) && state == ST_VOICE){
+        last_state = ST_VOICE;
+      } else if ((last_state == ST_MAYBE_SILENCE || last_state == ST_MAYBE_VOICE) && state == ST_SILENCE) {
+        last_state = ST_SILENCE;
+      } 
+
       if (t != last_t)
         fprintf(vadfile, "%.5f\t%.5f\t%s\n", last_t * frame_duration, t * frame_duration, state2str(last_state));
         

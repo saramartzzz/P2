@@ -16,7 +16,7 @@ float power = 0;
  */
 
 const char *state_str[] = {
-  "UNDEF", "S", "V", "INIT"
+  "UNDEF", "S", "V", "INIT", "MV", "MS"
 };
 
 const char *state2str(VAD_STATE st) {
@@ -50,7 +50,8 @@ VAD_DATA * vad_open(float rate, float alpha1, float alpha2, int total_trames, in
   VAD_DATA *vad_data = malloc(sizeof(VAD_DATA));
   vad_data->state = ST_INIT;
   vad_data->sampling_rate = rate;
-  vad_data->frame_length = rate * FRAME_TIME * 1e-3;  
+  vad_data->frame_length = rate * FRAME_TIME * 1e-3; 
+
   //inicilitzaem comptadors
   vad_data->num_trames = 0;
   vad_data->num_trames_maybe_v = 0;
@@ -102,9 +103,11 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
       power = power + pow(10,f.p/10);
       vad_data->state = ST_INIT;
     }else{*/
+
     printf("Estat incial\n") ;
     vad_data->p0 =f.p; // 10*log10(power/vad_data->num_trames);
     printf("P0: %f\n",vad_data->p0);
+    
     vad_data-> p1 = vad_data->p0 + vad_data->alpha1;//definimos valor umbral 1
     vad_data-> p2 = vad_data->p1 + vad_data->alpha2;//definimos valor umbral 2
     printf("P1= %f; P2= %f\n",vad_data->p1 , vad_data->p2);
@@ -135,54 +138,66 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
     break;
 
     case ST_MAYBE_VOICE: //per sortir s'ha de complir condició temporal
-    printf("Estat MV ----- P = %f\n", f.p);
-      /*if (vad_data->num_trames_maybe_v < vad_data->wmv){ //5 representa la ventana de análisis del maybe, ara és wmv
-          if(f.p < vad_data->p1)
-            vad_data->state = ST_SILENCE;
-            //vad_data->num_trames_maybe_v=0;
-           else if (f.p > vad_data->p2)// && vad_data->num_trames_maybe_v >= vad_data->minv){ //3 representa el núm de tramas necesarias para confirmar voice
-             vad_data->state = ST_VOICE;
-             //vad_data->num_trames_maybe_v=0;
-          else 
-            vad_data->state = ST_MAYBE_VOICE;
-          
-      }*/
+    printf("Estat MV ----- P = %f  Tramas = %d\n", f.p, vad_data->num_trames);
+    vad_data->num_trames += 1;
 
-    if(f.p>vad_data->p2)
-    vad_data->state = ST_VOICE;
-    if(f.p<vad_data->p1)
-    vad_data->state = ST_SILENCE;
+    if(f.p > vad_data->p2){
+      
+      vad_data->num_trames_maybe_v += 1;
+      printf("En MV ------> Tramas MV = %d\n", vad_data->num_trames_maybe_v);
+      vad_data->state = ST_MAYBE_VOICE;
+    }
 
+    if (vad_data->num_trames_maybe_v == 3){
+      
+      vad_data->state = ST_VOICE;
+      vad_data->num_trames_maybe_v = 0;
+      vad_data->num_trames = 0;
+    } 
+
+    if(f.p < vad_data->p1 || vad_data->num_trames == 3){ //Si es flsa alarma o si llevo en el limbo demasiados frames (3)
+      vad_data->state = ST_SILENCE;
+      vad_data->num_trames_maybe_v = 0;
+      vad_data->num_trames = 0;
+    }
     break;
 
     case ST_MAYBE_SILENCE: //per sortir s'ha de complir condició temporal
-    printf("Estat MS ----- P = %f\n", f.p);
-      /*if (vad_data->num_trames_maybe_s < vad_data->wms){ //5 representa la ventana de análisis del maybe
-          if(f.p > vad_data->p2){
-            vad_data->state = ST_VOICE;
-            vad_data->num_trames_maybe_s=0;
-          } else if (f.p < vad_data->p1 && vad_data->num_trames_maybe_s >= vad_data->mins){ //3 representa el núm de tramas necesarias para confirmar silenci (idem valor veu)
-             vad_data->state = ST_SILENCE;
-             vad_data->num_trames_maybe_s=0;
-          } else {
-            vad_data->state = ST_MAYBE_SILENCE;
-          }
-      }*/
-    if(f.p>vad_data->p2)
-    vad_data->state = ST_VOICE;
-    if(f.p<vad_data->p1)
-    vad_data->state = ST_SILENCE;
+    printf("Estat MS ----- P = %f  Tramas = %d\n", f.p, vad_data->num_trames);
+    vad_data->num_trames += 1;
+      
+    if(f.p < vad_data->p1){ //Cuento tramas mientras esté en MS
+      
+      vad_data->num_trames_maybe_s += 1;
+      printf("En MS ----> Tramas MS = %d\n", vad_data->num_trames_maybe_s) ;
+      vad_data->state = ST_MAYBE_SILENCE;
+    }
+
+    if (vad_data->num_trames_maybe_s == 3){ //Supero 3 tramas en silencio
+      vad_data->state = ST_SILENCE;
+      vad_data->num_trames_maybe_s = 0;
+      vad_data->num_trames = 0;
+    } 
+
+    if(f.p > vad_data->p2 || vad_data->num_trames == 3){ //Si es flsa alarma o si llevo en el limbo demasiados frames (3)
+      vad_data->state = ST_VOICE;
+      vad_data->num_trames_maybe_s = 0;
+      vad_data->num_trames = 0;
+    }
+
     break;    
 
   case ST_UNDEF:
     break;
   }
 
-  if (vad_data->state == ST_SILENCE ||
-      vad_data->state == ST_VOICE)
+  return vad_data->state;
+  /*if (vad_data->state == ST_SILENCE ||
+      vad_data->state == ST_VOICE || )
     return vad_data->state;
-  else
+  else 
     return ST_UNDEF;
+  */
 }
 
 void vad_show_state(const VAD_DATA *vad_data, FILE *out) {
