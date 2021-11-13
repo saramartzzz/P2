@@ -54,6 +54,7 @@ VAD_DATA * vad_open(float rate, float alpha1, float alpha2, int total_trames, in
 
   //inicilitzaem comptadors
   vad_data->num_trames = 0;
+  vad_data->trames_fons = 1;
   vad_data->num_trames_maybe_v = 0;
   vad_data->num_trames_maybe_s = 0;
 
@@ -89,39 +90,43 @@ unsigned int vad_frame_size(VAD_DATA *vad_data) {
 
 VAD_STATE vad(VAD_DATA *vad_data, float *x) {
 
-  /* 
-   * TODO: You can change this, using your own features,
-   * program finite state automaton, define conditions, etc.
-   */
-
   Features f = compute_features(x, vad_data->frame_length);
   vad_data->last_feature = f.p; /* save feature, in case you want to show */
 
   switch (vad_data->state) {
   case ST_INIT: //s'executen les ordres fins arribar al break
-    /*if(vad_data->num_trames <vad_data->total_trames){ //calcular soroll de fons
+    if(vad_data->trames_fons < vad_data->total_trames){ //calcular soroll de fons
       power = power + pow(10,f.p/10);
-      vad_data->state = ST_INIT;
-    }else{*/
+      vad_data->trames_fons += 1;
+      vad_data->state = ST_INIT;      
+    }else{
+
+      if(vad_data->total_trames == 1){
+        vad_data->p0 = f.p; 
+        //printf("P0: %f\n",vad_data->p0);
+      }else{
+        vad_data->p0 = 10*log10(power/vad_data->trames_fons);
+        printf("CALCULANT SOROLL DE FONS AMB %d trames\n", vad_data->trames_fons);
+      }
 
     printf("Estat incial\n") ;
-    vad_data->p0 =f.p; // 10*log10(power/vad_data->num_trames);
     printf("P0: %f\n",vad_data->p0);
+       
     
     vad_data-> p1 = vad_data->p0 + vad_data->alpha1;//definimos valor umbral 1
     vad_data-> p2 = vad_data->p1 + vad_data->alpha2;//definimos valor umbral 2
     printf("P1= %f; P2= %f\n",vad_data->p1 , vad_data->p2);
     vad_data->state = ST_SILENCE;
     vad_data->num_trames = 0;
+    vad_data->total_trames = 0;
     printf("Frame (mostres): %d\n", vad_data->frame_length);
     printf("Sampling Rate: %f\n", vad_data->sampling_rate);
 
-    //} 
+    } 
     break;
 
   case ST_SILENCE:
-    printf("Estat S  ----- P = %f\n",f.p) ;
-    //printf("%f\n",f.p);
+    //printf("Estat S  ----- P = %f\n",f.p) ;
     if (f.p > vad_data->p1)
       vad_data->state = ST_MAYBE_VOICE;
     else
@@ -130,7 +135,7 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
     break;
 
   case ST_VOICE:
- printf("Estat V  ----- P = %f\n",f.p) ;
+ //printf("Estat V  ----- P = %f\n",f.p) ;
     if (f.p < vad_data->p2)
       vad_data->state = ST_MAYBE_SILENCE;
     else
@@ -138,13 +143,13 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
     break;
 
     case ST_MAYBE_VOICE: //per sortir s'ha de complir condició temporal
-    printf("Estat MV ----- P = %f  Tramas = %d\n", f.p, vad_data->num_trames);
+    //printf("Estat MV ----- P = %f  Tramas = %d\n", f.p, vad_data->num_trames);
     vad_data->num_trames += 1;
 
     if(f.p > vad_data->p2){
       
       vad_data->num_trames_maybe_v += 1;
-      printf("En MV ------> Tramas MV = %d\n", vad_data->num_trames_maybe_v);
+      //printf("En MV ------> Tramas MV = %d\n", vad_data->num_trames_maybe_v);
       vad_data->state = ST_MAYBE_VOICE;
     }
 
@@ -163,13 +168,13 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
     break;
 
     case ST_MAYBE_SILENCE: //per sortir s'ha de complir condició temporal
-    printf("Estat MS ----- P = %f  Tramas = %d\n", f.p, vad_data->num_trames);
+    //printf("Estat MS ----- P = %f  Tramas = %d\n", f.p, vad_data->num_trames);
     vad_data->num_trames += 1;
       
     if(f.p < vad_data->p1){ //Cuento tramas mientras esté en MS
       
       vad_data->num_trames_maybe_s += 1;
-      printf("En MS ----> Tramas MS = %d\n", vad_data->num_trames_maybe_s) ;
+      //printf("En MS ----> Tramas MS = %d\n", vad_data->num_trames_maybe_s) ;
       vad_data->state = ST_MAYBE_SILENCE;
     }
 

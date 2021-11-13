@@ -105,8 +105,11 @@ int main(int argc, char *argv[]) {
         last_state = ST_VOICE;
       } else if ((last_state == ST_MAYBE_SILENCE || last_state == ST_MAYBE_VOICE) && state == ST_SILENCE) {
         last_state = ST_SILENCE;
-      } 
+      } else if(last_state == ST_INIT){
+        last_state = ST_SILENCE;
+      }
 
+      //printem etiquetes
       if (t != last_t)
         fprintf(vadfile, "%.5f\t%.5f\t%s\n", last_t * frame_duration, t * frame_duration, state2str(last_state));
         

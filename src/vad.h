@@ -23,6 +23,7 @@ typedef struct {
   unsigned int num_trames; // per comptar nivell de soroll de fons
   unsigned int num_trames_maybe_v; 
   unsigned int num_trames_maybe_s; 
+  int trames_fons;
   //lindars
   int total_trames;
   int w; //paràmetres dels maybe

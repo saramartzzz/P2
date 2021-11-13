@@ -42,7 +42,7 @@ const char help_message[] =
 "   -w FILE, --output-wav=FILE             WAVE file with silences cleared\n"
 "   -1 REAL, --alpha1=REAL                 Llidar 1 [default: 2]\n"
 "   -2 REAL, --alpha2=REAL                 Llidar 2 [default: 4]\n"
-"   -n REAL, --total_trames=REAL           Mostres per calcular sorolls fons [default: 2]\n"
+"   -n REAL, --total_trames=REAL           Mostres per calcular sorolls fons [default: 1]\n"
 "   -wd REAL, --window=REAL                Finestra [default: 5]\n"
 "   -v, --verbose  Show debug information\n"
 "   -h, --help     Show this screen\n"
@@ -319,7 +319,7 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
 
 DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     DocoptArgs args = {
-        0, 0, 0, (char*) "2", (char*) "4", NULL, NULL, NULL, (char*) "2",
+        0, 0, 0, (char*) "2", (char*) "4", NULL, NULL, NULL, (char*) "1",
         (char*) "5",
         usage_pattern, help_message
     };

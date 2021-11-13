@@ -11,7 +11,7 @@ Options:
    -w FILE, --output-wav=FILE             WAVE file with silences cleared
    -1 REAL, --alpha1=REAL                 Llidar 1 [default: 2]
    -2 REAL, --alpha2=REAL                 Llidar 2 [default: 4]
-   -n REAL, --total_trames=REAL           Mostres per calcular sorolls fons [default: 2]
+   -n REAL, --total_trames=REAL           Mostres per calcular sorolls fons [default: 1]
    -wd REAL, --window=REAL                Finestra [default: 5]
    -v, --verbose  Show debug information
    -h, --help     Show this screen
