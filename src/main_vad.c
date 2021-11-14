@@ -27,8 +27,8 @@ int main(int argc, char *argv[]) {
 
   float alpha1;
   float alpha2;
-  int total_trames;
-  int w;
+  int n;
+  int wl, wc;
   char	*input_wav, *output_vad, *output_wav;
 
   DocoptArgs args = docopt(argc, argv, /* help */ 1, /* version */ "2.0");
@@ -39,8 +39,9 @@ int main(int argc, char *argv[]) {
   output_wav = args.output_wav;
   alpha1     = atof(args.alpha1); //cadena de text a real (terminal, vale Sara?)
   alpha2     = atof(args.alpha2);
-  total_trames = atof(args.total_trames);
-  w = atof(args.window);
+  n = atof(args.window_noise);
+  wl = atof(args.window_limbo);
+  wc = atof(args.window_confirmacio);
 
   
   if (input_wav == 0 || output_vad == 0) {
@@ -73,7 +74,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  vad_data = vad_open(sf_info.samplerate, alpha1, alpha2, total_trames, w);
+  vad_data = vad_open(sf_info.samplerate, alpha1, alpha2, n, wl,wc);
   /* Allocate memory for buffers */
   frame_size   = vad_frame_size(vad_data);
   buffer       = (float *) malloc(frame_size * sizeof(float));
@@ -83,8 +84,7 @@ int main(int argc, char *argv[]) {
   frame_duration = (float) frame_size/ (float) sf_info.samplerate;
   last_state = ST_UNDEF;
   //last_last_state = ST_UNDEF;
-  printf("%d \n",total_trames);
-
+  
   for (t = last_t = 0; ; t++) { /* For each frame ... */
     /* End loop when file has finished (or there is an error) */
     if  ((n_read = sf_read_float(sndfile_in, buffer, frame_size)) != frame_size) break;
@@ -104,10 +104,14 @@ int main(int argc, char *argv[]) {
     // Aquí tenemos que jugar con el valor de la ventana del limbo, es decir, no es lo mismo cambiar de estado porque se 
     // cumple la condición de potencia que cambiar de estado porque se ha agotado el tiempo permitido en el maybe
     if (state != last_state) {
-      if ((last_state == ST_MAYBE_VOICE || last_state == ST_MAYBE_SILENCE) && state == ST_VOICE){
-        last_state = ST_VOICE;
-      } else if ((last_state == ST_MAYBE_SILENCE || last_state == ST_MAYBE_VOICE) && state == ST_SILENCE) {
+      if ((last_state == ST_MAYBE_SILENCE || last_state == ST_MAYBE_VOICE) && state == ST_SILENCE){
+        vad_data->num_total_s = vad_data->num_total_s + vad_data->num_trames_maybe_s + vad_data->num_trames_maybe_v + vad_data->num_trames_s;
         last_state = ST_SILENCE;
+        //last_state = ST_VOICE;
+      } else if ((last_state == ST_MAYBE_VOICE || last_state == ST_MAYBE_SILENCE) && state == ST_VOICE) {
+        vad_data->num_total_v = vad_data->num_total_v + vad_data->num_trames_maybe_v + vad_data->num_trames_maybe_s + vad_data->num_trames_v;
+        last_state = ST_VOICE;
+        //last_state = ST_SILENCE;
       } else if (last_state == ST_INIT){
         last_state = ST_SILENCE;
       }

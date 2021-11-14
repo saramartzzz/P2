@@ -30,10 +30,6 @@ typedef struct {
   float am;
 } Features;
 
-/* 
- * TODO: Delete and use your own features!
- */
-
 Features compute_features(const float *x, int N) {
   
   Features feat;
@@ -47,7 +43,7 @@ Features compute_features(const float *x, int N) {
  * TODO: Init the values of vad_data
  */
 
-VAD_DATA * vad_open(float rate, float alpha1, float alpha2, int total_trames, int w) { //inicialitza variables
+VAD_DATA * vad_open(float rate, float alpha1, float alpha2, int n, int wl, int wc) { //inicialitza variables
   VAD_DATA *vad_data = malloc(sizeof(VAD_DATA));
   vad_data->state = ST_INIT;
   vad_data->sampling_rate = rate;
@@ -58,14 +54,20 @@ VAD_DATA * vad_open(float rate, float alpha1, float alpha2, int total_trames, in
   vad_data->trames_fons = 1;
   vad_data->num_trames_maybe_v = 0;
   vad_data->num_trames_maybe_s = 0;
+  vad_data->num_trames_v = 0;
+  vad_data->num_trames_s = 0;
+  vad_data->num_total_s = 0;
+  vad_data->num_total_v = 0;
+
   vad_data->trames_fons = 1;
 
 
   //inicialitzem llindars
   vad_data->alpha1 = alpha1;
   vad_data->alpha2 = alpha2;
-  vad_data->total_trames = total_trames;
-  //vad_data->w = w;
+  vad_data->n = n;
+  vad_data->wc = wc;
+  vad_data->wl = wl;
 
   return vad_data;
 }
@@ -84,11 +86,6 @@ unsigned int vad_frame_size(VAD_DATA *vad_data) {
   return vad_data->frame_length;
 }
 
-/* 
- * TODO: Implement the Voice Activity Detection 
- * using a Finite State Automata
- */
-
 VAD_STATE vad(VAD_DATA *vad_data, float *x) {
 
   Features f = compute_features(x, vad_data->frame_length);
@@ -96,42 +93,47 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
 
   switch (vad_data->state) {
 
-  case ST_INIT: //S'executen les ordres fins arribar al break
+  case ST_INIT: 
+    //printf("P0 incial: %f\n",vad_data->p0);
     
-    vad_data->p0 = f.p; 
-    printf("P0: %f\n",vad_data->p0);
-
-    /*if(vad_data->trames_fons < vad_data->total_trames){ //calcular soroll de fons
-      power = power + pow(10,f.p/10);
-      vad_data->trames_fons += 1;
-      vad_data->state = ST_INIT;      
-    }else{
-
-      if(vad_data->total_trames == 1){
-        vad_data->p0 = f.p; 
-        printf("P0: %f\n",vad_data->p0);
+    if(vad_data->trames_fons <= vad_data->n){ //calcular soroll de fons
+    //printf("Trames fons =  %d\n",vad_data->trames_fons );
+      if(vad_data->n==1){
+          vad_data->p0 = f.p;
+          printf("P0 (n=1): %f\n",vad_data->p0); 
+          vad_data->state = ST_SILENCE;
       }else{
-        vad_data->p0 = 10*log10(power/vad_data->trames_fons);
-        printf("CALCULANT SOROLL DE FONS AMB %d trames\n", vad_data->trames_fons);
+        power = power + pow(10,f.p/10);
+        vad_data->state = ST_INIT;      
       }
-    }*/
-
-    printf("Estat incial\n");
+      vad_data->trames_fons += 1;
+    }else{
+      vad_data->p0=10*log10(power/vad_data->trames_fons);
+      vad_data->state = ST_SILENCE;
+      printf("P0 (n=%d): %f\n", vad_data->n,vad_data->p0);
+    }
+     
+    //printf("Estat incial\n");
   
     vad_data-> p1 = vad_data->p0 + vad_data->alpha1; //Definimos valor umbral 1
     vad_data-> p2 = vad_data->p1 + vad_data->alpha2; //Definimos valor umbral 2
-    printf("P1= %f; P2= %f\n",vad_data->p1 , vad_data->p2);
-    vad_data->state = ST_SILENCE;
-    vad_data->num_trames = 0;
-    vad_data->total_trames = 0;
-    printf("Frame (mostres): %d\n", vad_data->frame_length);
-    printf("Sampling Rate: %f\n", vad_data->sampling_rate);
+    //printf("P1= %f; P2= %f\n",vad_data->p1 , vad_data->p2);
+ 
+    //vad_data->num_trames = 0;
+       
+    //printf("Frame (mostres): %d\n", vad_data->frame_length);
+    //printf("Sampling Rate: %f\n", vad_data->sampling_rate);
 
   
     break;
 
   case ST_SILENCE:
-    //printf("Estat S  ----- P = %f\n",f.p) ;
+    //printf("Main ----- Tramas V = %d\n", vad_data->num_total_v);
+    vad_data->num_total_v = 0;
+    vad_data->num_total_s += 1;
+    //printf("Estat S  ----- Tramas S = %d\n",vad_data->num_total_s);
+    
+    //printf("%f\n",f.p);
     if (f.p > vad_data->p1)
       vad_data->state = ST_MAYBE_VOICE;
     else
@@ -140,7 +142,10 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
     break;
 
   case ST_VOICE:
- //printf("Estat V  ----- P = %f\n",f.p) ;
+    //printf("Main ----- Tramas S = %d\n", vad_data->num_total_s);
+    vad_data->num_total_s = 0;
+    vad_data->num_total_v += 1;
+    //printf("Estat V  ----- Tramas V = %d\n",vad_data->num_total_v);
     if (f.p < vad_data->p2)
       vad_data->state = ST_MAYBE_SILENCE;
     else
@@ -158,21 +163,21 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
       vad_data->state = ST_MAYBE_VOICE;
     }
 
-    if (vad_data->num_trames_maybe_v == 3){
+    if (vad_data->num_trames_maybe_v == vad_data->wc){
       
       vad_data->state = ST_VOICE;
       vad_data->num_trames_maybe_v = 0;
       vad_data->num_trames = 0;
     } 
 
-    if(f.p < vad_data->p1 || vad_data->num_trames == 3){ //Si es flsa alarma o si llevo en el limbo demasiados frames (3)
+    if(f.p < vad_data->p1 || vad_data->num_trames == vad_data->wl){ //Si es flsa alarma o si llevo en el limbo demasiados frames (3)
       vad_data->state = ST_SILENCE;
       vad_data->num_trames_maybe_v = 0;
       vad_data->num_trames = 0;
     }
     break;
 
-    case ST_MAYBE_SILENCE: //per sortir s'ha de complir condició temporal
+  case ST_MAYBE_SILENCE: 
     //printf("Estat MS ----- P = %f  Tramas = %d\n", f.p, vad_data->num_trames);
     vad_data->num_trames += 1;
       
@@ -183,13 +188,13 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
       vad_data->state = ST_MAYBE_SILENCE;
     }
 
-    if (vad_data->num_trames_maybe_s == 3){ //Supero 3 tramas en silencio
+    if (vad_data->num_trames_maybe_s == vad_data->wc){ //Supero 3 tramas en silencio
       vad_data->state = ST_SILENCE;
       vad_data->num_trames_maybe_s = 0;
       vad_data->num_trames = 0;
     } 
 
-    if(f.p > vad_data->p2 || vad_data->num_trames == 3){ //Si es flsa alarma o si llevo en el limbo demasiados frames (3)
+    if(f.p > vad_data->p2 || vad_data->num_trames == vad_data->wl){ //Si es flsa alarma o si llevo en el limbo demasiados frames (3)
       vad_data->state = ST_VOICE;
       vad_data->num_trames_maybe_s = 0;
       vad_data->num_trames = 0;

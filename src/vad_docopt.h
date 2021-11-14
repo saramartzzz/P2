@@ -21,8 +21,9 @@ typedef struct {
     char *input_wav;
     char *output_vad;
     char *output_wav;
-    char *total_trames;
-    char *window;
+    char *window_confirmacio;
+    char *window_limbo;
+    char *window_noise;
     /* special */
     const char *usage_pattern;
     const char *help_message;
@@ -40,10 +41,11 @@ const char help_message[] =
 "   -i FILE, --input-wav=FILE              WAVE file for voice activity detection\n"
 "   -o FILE, --output-vad=FILE             Label file with the result of VAD\n"
 "   -w FILE, --output-wav=FILE             WAVE file with silences cleared\n"
-"   -1 REAL, --alpha1=REAL                 Llidar 1 [default: 2]\n"
-"   -2 REAL, --alpha2=REAL                 Llidar 2 [default: 4]\n"
-"   -n REAL, --total_trames=REAL           Mostres per calcular sorolls fons [default: 1]\n"
-"   -wd REAL, --window=REAL                Finestra [default: 5]\n"
+"   -1 REAL, --alpha1=REAL                 Llidar 1 [default: 0.5]\n"
+"   -2 REAL, --alpha2=REAL                 Llidar 2 [default: 8]\n"
+"   -n REAL, --window_noise=REAL           Mostres per calcular sorolls fons [default: 1]\n"
+"   -wl REAL, --window_limbo=REAL          Finestra limbo [default: 5]\n"
+"   -wc REAL, --window_confirmacio=REAL    Finestra confimació [default: 2]\n"
 "   -v, --verbose  Show debug information\n"
 "   -h, --help     Show this screen\n"
 "   --version      Show the version of the project\n"
@@ -293,12 +295,15 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
         } else if (!strcmp(option->olong, "--output-wav")) {
             if (option->argument)
                 args->output_wav = option->argument;
-        } else if (!strcmp(option->olong, "--total_trames")) {
+        } else if (!strcmp(option->olong, "--window_confirmacio")) {
             if (option->argument)
-                args->total_trames = option->argument;
-        } else if (!strcmp(option->olong, "--window")) {
+                args->window_confirmacio = option->argument;
+        } else if (!strcmp(option->olong, "--window_limbo")) {
             if (option->argument)
-                args->window = option->argument;
+                args->window_limbo = option->argument;
+        } else if (!strcmp(option->olong, "--window_noise")) {
+            if (option->argument)
+                args->window_noise = option->argument;
         }
     }
     /* commands */
@@ -319,8 +324,8 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
 
 DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     DocoptArgs args = {
-        0, 0, 0, (char*) "2", (char*) "4", NULL, NULL, NULL, (char*) "1",
-        (char*) "5",
+        0, 0, 0, (char*) "0.5", (char*) "8", NULL, NULL, NULL, (char*) "2",
+        (char*) "5", (char*) "1",
         usage_pattern, help_message
     };
     Tokens ts;
@@ -337,10 +342,11 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
         {"-i", "--input-wav", 1, 0, NULL},
         {"-o", "--output-vad", 1, 0, NULL},
         {"-w", "--output-wav", 1, 0, NULL},
-        {"-n", "--total_trames", 1, 0, NULL},
-        {"-wd", "--window", 1, 0, NULL}
+        {"-wc", "--window_confirmacio", 1, 0, NULL},
+        {"-wl", "--window_limbo", 1, 0, NULL},
+        {"-n", "--window_noise", 1, 0, NULL}
     };
-    Elements elements = {0, 0, 10, commands, arguments, options};
+    Elements elements = {0, 0, 11, commands, arguments, options};
 
     ts = tokens_new(argc, argv);
     if (parse_args(&ts, &elements))
