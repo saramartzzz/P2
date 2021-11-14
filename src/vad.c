@@ -7,13 +7,8 @@
 
 const float FRAME_TIME = 10.0F; /* in ms. */
 
-float power = 0;
+float power = 0;  // inicilitzem comptador de la potència
 
-/* 
- * As the output state is only ST_VOICE, ST_SILENCE, or ST_UNDEF,
- * only this labels are needed. You need to add all labels, in case
- * you want to print the internal state in string format
- */
 
 const char *state_str[] = {
   "UNDEF", "S", "V", "INIT", "MV", "MS"
@@ -34,19 +29,17 @@ Features compute_features(const float *x, int N) {
   
   Features feat;
   feat.p = compute_power(x,N);
-  feat.zcr = compute_zcr(x,N,16000); //La fm es 16000 porque lo sabemos, pero deberiamos obtenerla
+  feat.zcr = compute_zcr(x,N, 16000);
+  
   //SILENCIO -> ZCR alto
   //VOZ -> ZCR bajo
-  //Establecer un umbral en el que se optimice un cierto valor para considerarlo sonoro o sordo
-  // feat.am = (float) rand()/RAND_MAX;
+
   return feat;
 }
 
-/* 
- * TODO: Init the values of vad_data
- */
 
-VAD_DATA * vad_open(float rate, float alpha1, float alpha2, int n, int wl, int wc) { //inicialitza variables
+
+VAD_DATA * vad_open(float rate, float alpha1, float alpha2, int n, int wl, int wc, int zcr1, int zcr2, int wlv) { //inicialitza variables
   VAD_DATA *vad_data = malloc(sizeof(VAD_DATA));
   vad_data->state = ST_INIT;
   vad_data->sampling_rate = rate;
@@ -54,7 +47,7 @@ VAD_DATA * vad_open(float rate, float alpha1, float alpha2, int n, int wl, int w
 
   //inicilitzaem comptadors
   vad_data->num_trames = 0;
-  vad_data->trames_fons = 1;
+  vad_data->trames_fons = 1; // per tal de tenir en compte la primera trama
   vad_data->num_trames_maybe_v = 0;
   vad_data->num_trames_maybe_s = 0;
   vad_data->num_trames_v = 0;
@@ -62,23 +55,21 @@ VAD_DATA * vad_open(float rate, float alpha1, float alpha2, int n, int wl, int w
   vad_data->num_total_s = 0;
   vad_data->num_total_v = 0;
 
-  vad_data->trames_fons = 1;
-
-
   //inicialitzem llindars
   vad_data->alpha1 = alpha1;
   vad_data->alpha2 = alpha2;
   vad_data->n = n;
   vad_data->wc = wc;
   vad_data->wl = wl;
+  vad_data->zcr1 = zcr1;
+  vad_data->zcr2 = zcr2;
+  vad_data->wlv = wlv;
 
   return vad_data;
 }
 
 VAD_STATE vad_close(VAD_DATA *vad_data) {
-  /* 
-   * TODO: decide what to do with the last undecided frames
-   */
+
   VAD_STATE state = vad_data->state;
 
   free(vad_data);
@@ -98,10 +89,8 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
 
   case ST_INIT: 
     //printf("P0 incial: %f\n",vad_data->p0);
-    
     if(vad_data->trames_fons <= vad_data->n){ //calcular soroll de fons
-    //printf("Trames fons =  %d\n",vad_data->trames_fons );
-      if(vad_data->n==1){
+        if(vad_data->n==1){
           vad_data->p0 = f.p;
           //printf("P0 (n=1): %f\n",vad_data->p0); 
           vad_data->state = ST_SILENCE;
@@ -113,17 +102,13 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
     }else{
       vad_data->p0=10*log10(power/vad_data->trames_fons);
       vad_data->state = ST_SILENCE;
-      printf("P0 (n=%d): %f\n", vad_data->n,vad_data->p0);
+      //printf("P0 (n=%d): %f\n", vad_data->n,vad_data->p0);
     }
-     
-    //printf("Estat incial\n");
-  
+      
     vad_data-> p1 = vad_data->p0 + vad_data->alpha1; //Definimos valor umbral 1
     vad_data-> p2 = vad_data->p1 + vad_data->alpha2; //Definimos valor umbral 2
+    
     //printf("P1= %f; P2= %f\n",vad_data->p1 , vad_data->p2);
- 
-    //vad_data->num_trames = 0;
-       
     //printf("Frame (mostres): %d\n", vad_data->frame_length);
     //printf("Sampling Rate: %f\n", vad_data->sampling_rate);
 
@@ -131,13 +116,12 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
     break;
 
   case ST_SILENCE:
-    //printf("Main ----- Tramas V = %d\n", vad_data->num_total_v);
+    //printf("Main ----- Tramas V = %d\n", vad_data->num_total_v); --> possible millora en l'etiquetat
     vad_data->num_total_v = 0;
     vad_data->num_total_s += 1;
     //printf("Estat S  ----- Tramas S = %d\n",vad_data->num_total_s);
     //printf("Estat S  ----- ZCR S = %f\n",f.zcr);
-    
-    //printf("%f\n",f.p);
+
     if (f.p > vad_data->p1)
       vad_data->state = ST_MAYBE_VOICE;
     else
@@ -151,31 +135,29 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
     vad_data->num_total_v += 1;
     //printf("Estat V  ----- Tramas V = %d\n",vad_data->num_total_v);
     //printf("Estat V  ----- ZCR V = %f\n",f.zcr);
-    if (f.p < vad_data->p2)
+    if (f.p < vad_data->p2 && f.zcr>vad_data->zcr1)
       vad_data->state = ST_MAYBE_SILENCE;
     else
       vad_data->state = ST_VOICE;
     break;
 
-  case ST_MAYBE_VOICE: //per sortir s'ha de complir condició temporal
+  case ST_MAYBE_VOICE: 
     //printf("Estat MV ----- P = %f  Tramas = %d\n", f.p, vad_data->num_trames);
     vad_data->num_trames += 1;
 
     if(f.p > vad_data->p2){
-      
       vad_data->num_trames_maybe_v += 1;
       //printf("En MV ------> Tramas MV = %d\n", vad_data->num_trames_maybe_v);
       vad_data->state = ST_MAYBE_VOICE;
     }
 
-    if (vad_data->num_trames_maybe_v == vad_data->wc){
-      
+    if (vad_data->num_trames_maybe_v == vad_data->wc){      
       vad_data->state = ST_VOICE;
       vad_data->num_trames_maybe_v = 0;
       vad_data->num_trames = 0;
     } 
 
-    if(f.p < vad_data->p1 || vad_data->num_trames == vad_data->wl){ //Si es falsa alarma o si llevo en el limbo demasiados frames (3)
+    if(f.p < vad_data->p1 || vad_data->num_trames == vad_data->wlv){ //Si es falsa alarma o si llevo en el limbo demasiados frames
       vad_data->state = ST_SILENCE;
       vad_data->num_trames_maybe_v = 0;
       vad_data->num_trames = 0;
@@ -186,20 +168,19 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
     //printf("Estat MS ----- P = %f  Tramas = %d\n", f.p, vad_data->num_trames);
     vad_data->num_trames += 1;
       
-    if(f.p < vad_data->p1){ //Cuento tramas mientras esté en MS
-      
+    if(f.p < vad_data->p1){       
       vad_data->num_trames_maybe_s += 1;
       //printf("En MS ----> Tramas MS = %d\n", vad_data->num_trames_maybe_s) ;
       vad_data->state = ST_MAYBE_SILENCE;
     }
 
-    if (vad_data->num_trames_maybe_s == vad_data->wc && f.zcr > 13){ //Supero 3 tramas en silencio
+    if (vad_data->num_trames_maybe_s == vad_data->wc && f.zcr > vad_data->zcr2){ //Supero 3 tramas en silencio
       vad_data->state = ST_SILENCE;
       vad_data->num_trames_maybe_s = 0;
       vad_data->num_trames = 0;
     } 
 
-    if(f.p > vad_data->p2 || vad_data->num_trames == vad_data->wl){ //Si es flsa alarma o si llevo en el limbo demasiados frames (3)
+    if(f.p > vad_data->p2 || vad_data->num_trames == vad_data->wl){ //Si es flsa alarma o si llevo en el limbo demasiados frames
       vad_data->state = ST_VOICE;
       vad_data->num_trames_maybe_s = 0;
       vad_data->num_trames = 0;

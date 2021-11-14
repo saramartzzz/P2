@@ -8,8 +8,7 @@ typedef enum {ST_UNDEF=0,ST_SILENCE, ST_VOICE,ST_INIT,ST_MAYBE_VOICE, ST_MAYBE_S
 /* Return a string label associated to each state */
 const char *state2str(VAD_STATE st);
 
-/* TODO: add the variables needed to control the VAD 
-   (counts, thresholds, etc.) */
+
 
 typedef struct {
   VAD_STATE state;
@@ -20,27 +19,24 @@ typedef struct {
   float p0,p1,p2;
 
   //comptadors
-  unsigned int num_trames; // per comptar nivell de soroll de fons
+  unsigned int num_trames; 
   unsigned int num_trames_maybe_v; 
   unsigned int num_trames_maybe_s; 
   unsigned int num_trames_v; 
   unsigned int num_trames_s;
   unsigned int num_total_v; 
   unsigned int num_total_s;
-  
-  unsigned int trames_fons;
+  unsigned int trames_fons; // per comptar nivell de soroll de fons
   //lindars
-  int n;
   float alpha1, alpha2;
-  int wl, wc; //paràmetres dels maybe
-
+  int n, wl, wc, zcr1, zcr2, wlv; //paràmetres dels maybe
 } VAD_DATA;
 
 /* Call this function before using VAD: 
    It should return allocated and initialized values of vad_data
 
    sampling_rate: ... the sampling rate */
-VAD_DATA *vad_open(float rate, float alpha1, float alpha2, int n, int wl, int wc);
+VAD_DATA *vad_open(float rate, float alpha1, float alpha2, int n, int wl, int wc, int zcr1, int zcr2, int wlv);
 
 /* vad works frame by frame.
    This function returns the frame size so that the program knows how

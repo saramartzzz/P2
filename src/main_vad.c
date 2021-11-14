@@ -5,7 +5,7 @@
 
 #include "vad.h"
 #include "vad_docopt.h"
-#include  "pav_analysis.h"
+#include "pav_analysis.h"
 
 #define DEBUG_VAD 0x1
 
@@ -25,10 +25,8 @@ int main(int argc, char *argv[]) {
   float frame_duration;   /* in seconds */
   unsigned int t, last_t; /* in frames */
 
-  float alpha1;
-  float alpha2;
-  int n;
-  int wl, wc;
+  float alpha1, alpha2;
+  int n,wl, wc,zcr1, zcr2, wlv;
   char	*input_wav, *output_vad, *output_wav;
 
   DocoptArgs args = docopt(argc, argv, /* help */ 1, /* version */ "2.0");
@@ -42,6 +40,9 @@ int main(int argc, char *argv[]) {
   n = atof(args.window_noise);
   wl = atof(args.window_limbo);
   wc = atof(args.window_confirmacio);
+  zcr1 = atof(args.zcr_1);
+  zcr2 = atof(args.zcr_2);
+  wlv = atof(args.window_limbo_voice);
 
   
   if (input_wav == 0 || output_vad == 0) {
@@ -74,7 +75,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  vad_data = vad_open(sf_info.samplerate, alpha1, alpha2, n, wl,wc);
+  vad_data = vad_open(sf_info.samplerate, alpha1, alpha2, n, wl, wc, zcr1, zcr2, wlv);
   /* Allocate memory for buffers */
   frame_size   = vad_frame_size(vad_data);
   buffer       = (float *) malloc(frame_size * sizeof(float));
@@ -83,7 +84,7 @@ int main(int argc, char *argv[]) {
 
   frame_duration = (float) frame_size/ (float) sf_info.samplerate;
   last_state = ST_UNDEF;
-  //last_last_state = ST_UNDEF;
+
   
   for (t = last_t = 0; ; t++) { /* For each frame ... */
     /* End loop when file has finished (or there is an error) */
@@ -99,19 +100,14 @@ int main(int argc, char *argv[]) {
     
     if (verbose & DEBUG_VAD) vad_show_state(vad_data, stdout);
 
-    /* TODO: print only SILENCE and VOICE labels */
-    /* As it is, it prints UNDEF segments but is should be merge to the proper value */
-    // Aquí tenemos que jugar con el valor de la ventana del limbo, es decir, no es lo mismo cambiar de estado porque se 
-    // cumple la condición de potencia que cambiar de estado porque se ha agotado el tiempo permitido en el maybe
+
     if (state != last_state) {
       if ((last_state == ST_MAYBE_SILENCE || last_state == ST_MAYBE_VOICE) && state == ST_SILENCE){
         vad_data->num_total_s = vad_data->num_total_s + vad_data->num_trames_maybe_s + vad_data->num_trames_maybe_v + vad_data->num_trames_s;
         last_state = ST_SILENCE;
-        //last_state = ST_VOICE;
       } else if ((last_state == ST_MAYBE_VOICE || last_state == ST_MAYBE_SILENCE) && state == ST_VOICE) {
         vad_data->num_total_v = vad_data->num_total_v + vad_data->num_trames_maybe_v + vad_data->num_trames_maybe_s + vad_data->num_trames_v;
         last_state = ST_VOICE;
-        //last_state = ST_SILENCE;
       } else if (last_state == ST_INIT){
         last_state = ST_SILENCE;
       }
@@ -120,12 +116,14 @@ int main(int argc, char *argv[]) {
       if (t != last_t)
         fprintf(vadfile, "%.5f\t%.5f\t%s\n", last_t * frame_duration, t * frame_duration, state2str(last_state));
 
-      //last_last_state = last_state;
+
       last_state = state;
       last_t = t;
     }
+  
 
     if (sndfile_out != 0) {
+      printf("fitxer wav creat");
       /* TODO: go back and write zeros in silence segments */
     }
   }

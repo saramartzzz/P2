@@ -9,11 +9,14 @@ Options:
    -i FILE, --input-wav=FILE              WAVE file for voice activity detection
    -o FILE, --output-vad=FILE             Label file with the result of VAD
    -w FILE, --output-wav=FILE             WAVE file with silences cleared
-   -1 REAL, --alpha1=REAL                 Llidar 1 [default: 0.5]
-   -2 REAL, --alpha2=REAL                 Llidar 2 [default: 8]
+   -1 REAL, --alpha1=REAL                 Llidar 1 [default: 1.2]
+   -2 REAL, --alpha2=REAL                 Llidar 2 [default: 8.25]
    -n REAL, --window_noise=REAL           Mostres per calcular sorolls fons [default: 1]
    -wl REAL, --window_limbo=REAL          Finestra limbo [default: 5]
    -wc REAL, --window_confirmacio=REAL    Finestra confimació [default: 2]
+   -zcr1 REAL, --zcr_1=REAL               ZCR per passar a maybe silence [default: 20]
+   -zcr2 REAL, --zcr_2=REAL               ZCR per passar a  silence [default: 15]
+   -wlv REAL, --window_limbo_voice=REAL   Finestra limbo veu [default: 7]
    -v, --verbose  Show debug information
    -h, --help     Show this screen
    --version      Show the version of the project
