@@ -35,6 +35,9 @@ Features compute_features(const float *x, int N) {
   Features feat;
   feat.p = compute_power(x,N);
   feat.zcr = compute_zcr(x,N,16000); //La fm es 16000 porque lo sabemos, pero deberiamos obtenerla
+  //SILENCIO -> ZCR alto
+  //VOZ -> ZCR bajo
+  //Establecer un umbral en el que se optimice un cierto valor para considerarlo sonoro o sordo
   // feat.am = (float) rand()/RAND_MAX;
   return feat;
 }
@@ -100,7 +103,7 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
     //printf("Trames fons =  %d\n",vad_data->trames_fons );
       if(vad_data->n==1){
           vad_data->p0 = f.p;
-          printf("P0 (n=1): %f\n",vad_data->p0); 
+          //printf("P0 (n=1): %f\n",vad_data->p0); 
           vad_data->state = ST_SILENCE;
       }else{
         power = power + pow(10,f.p/10);
@@ -132,6 +135,7 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
     vad_data->num_total_v = 0;
     vad_data->num_total_s += 1;
     //printf("Estat S  ----- Tramas S = %d\n",vad_data->num_total_s);
+    //printf("Estat S  ----- ZCR S = %f\n",f.zcr);
     
     //printf("%f\n",f.p);
     if (f.p > vad_data->p1)
@@ -146,6 +150,7 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
     vad_data->num_total_s = 0;
     vad_data->num_total_v += 1;
     //printf("Estat V  ----- Tramas V = %d\n",vad_data->num_total_v);
+    //printf("Estat V  ----- ZCR V = %f\n",f.zcr);
     if (f.p < vad_data->p2)
       vad_data->state = ST_MAYBE_SILENCE;
     else
@@ -170,7 +175,7 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
       vad_data->num_trames = 0;
     } 
 
-    if(f.p < vad_data->p1 || vad_data->num_trames == vad_data->wl){ //Si es flsa alarma o si llevo en el limbo demasiados frames (3)
+    if(f.p < vad_data->p1 || vad_data->num_trames == vad_data->wl){ //Si es falsa alarma o si llevo en el limbo demasiados frames (3)
       vad_data->state = ST_SILENCE;
       vad_data->num_trames_maybe_v = 0;
       vad_data->num_trames = 0;
@@ -188,7 +193,7 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
       vad_data->state = ST_MAYBE_SILENCE;
     }
 
-    if (vad_data->num_trames_maybe_s == vad_data->wc){ //Supero 3 tramas en silencio
+    if (vad_data->num_trames_maybe_s == vad_data->wc && f.zcr > 13){ //Supero 3 tramas en silencio
       vad_data->state = ST_SILENCE;
       vad_data->num_trames_maybe_s = 0;
       vad_data->num_trames = 0;
