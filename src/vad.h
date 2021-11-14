@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 /* TODO: add the needed states */
-typedef enum {ST_UNDEF=0,ST_SILENCE, ST_VOICE,ST_INIT,ST_MAYBE_VOICE, ST_MAYBE_SILENCE}VAD_STATE;//, ST_FIN} VAD_STATE;
+typedef enum {ST_UNDEF=0,ST_SILENCE, ST_VOICE,ST_INIT,ST_MAYBE_VOICE, ST_MAYBE_SILENCE}VAD_STATE; //ST_FIN ??
 
 /* Return a string label associated to each state */
 const char *state2str(VAD_STATE st);
@@ -23,7 +23,7 @@ typedef struct {
   unsigned int num_trames; // per comptar nivell de soroll de fons
   unsigned int num_trames_maybe_v; 
   unsigned int num_trames_maybe_s; 
-  int trames_fons;
+  unsigned int trames_fons;
   //lindars
   int total_trames;
   int w; //paràmetres dels maybe

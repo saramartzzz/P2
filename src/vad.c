@@ -38,7 +38,7 @@ Features compute_features(const float *x, int N) {
   
   Features feat;
   feat.p = compute_power(x,N);
-  feat.zcr = compute_zcr(x,N,vad_data->sampling_rate);
+  feat.zcr = compute_zcr(x,N,16000); //La fm es 16000 porque lo sabemos, pero deberiamos obtenerla
   // feat.am = (float) rand()/RAND_MAX;
   return feat;
 }
@@ -58,6 +58,7 @@ VAD_DATA * vad_open(float rate, float alpha1, float alpha2, int total_trames, in
   vad_data->trames_fons = 1;
   vad_data->num_trames_maybe_v = 0;
   vad_data->num_trames_maybe_s = 0;
+  vad_data->trames_fons = 1;
 
 
   //inicialitzem llindars
@@ -94,8 +95,13 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
   vad_data->last_feature = f.p; /* save feature, in case you want to show */
 
   switch (vad_data->state) {
-  case ST_INIT: //s'executen les ordres fins arribar al break
-    if(vad_data->trames_fons < vad_data->total_trames){ //calcular soroll de fons
+
+  case ST_INIT: //S'executen les ordres fins arribar al break
+    
+    vad_data->p0 = f.p; 
+    printf("P0: %f\n",vad_data->p0);
+
+    /*if(vad_data->trames_fons < vad_data->total_trames){ //calcular soroll de fons
       power = power + pow(10,f.p/10);
       vad_data->trames_fons += 1;
       vad_data->state = ST_INIT;      
@@ -103,14 +109,15 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
 
       if(vad_data->total_trames == 1){
         vad_data->p0 = f.p; 
-        //printf("P0: %f\n",vad_data->p0);
+        printf("P0: %f\n",vad_data->p0);
       }else{
         vad_data->p0 = 10*log10(power/vad_data->trames_fons);
         printf("CALCULANT SOROLL DE FONS AMB %d trames\n", vad_data->trames_fons);
       }
+    }*/
 
-    printf("Estat incial\n");     
-    
+    printf("Estat incial\n");
+  
     vad_data-> p1 = vad_data->p0 + vad_data->alpha1; //Definimos valor umbral 1
     vad_data-> p2 = vad_data->p1 + vad_data->alpha2; //Definimos valor umbral 2
     printf("P1= %f; P2= %f\n",vad_data->p1 , vad_data->p2);
@@ -120,7 +127,7 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
     printf("Frame (mostres): %d\n", vad_data->frame_length);
     printf("Sampling Rate: %f\n", vad_data->sampling_rate);
 
-    } 
+  
     break;
 
   case ST_SILENCE:

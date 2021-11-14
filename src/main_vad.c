@@ -82,6 +82,7 @@ int main(int argc, char *argv[]) {
 
   frame_duration = (float) frame_size/ (float) sf_info.samplerate;
   last_state = ST_UNDEF;
+  //last_last_state = ST_UNDEF;
   printf("%d \n",total_trames);
 
   for (t = last_t = 0; ; t++) { /* For each frame ... */
@@ -100,19 +101,22 @@ int main(int argc, char *argv[]) {
 
     /* TODO: print only SILENCE and VOICE labels */
     /* As it is, it prints UNDEF segments but is should be merge to the proper value */
+    // Aquí tenemos que jugar con el valor de la ventana del limbo, es decir, no es lo mismo cambiar de estado porque se 
+    // cumple la condición de potencia que cambiar de estado porque se ha agotado el tiempo permitido en el maybe
     if (state != last_state) {
       if ((last_state == ST_MAYBE_VOICE || last_state == ST_MAYBE_SILENCE) && state == ST_VOICE){
         last_state = ST_VOICE;
       } else if ((last_state == ST_MAYBE_SILENCE || last_state == ST_MAYBE_VOICE) && state == ST_SILENCE) {
         last_state = ST_SILENCE;
-      } else if(last_state == ST_INIT){
+      } else if (last_state == ST_INIT){
         last_state = ST_SILENCE;
       }
 
       //printem etiquetes
       if (t != last_t)
         fprintf(vadfile, "%.5f\t%.5f\t%s\n", last_t * frame_duration, t * frame_duration, state2str(last_state));
-        
+
+      //last_last_state = last_state;
       last_state = state;
       last_t = t;
     }
