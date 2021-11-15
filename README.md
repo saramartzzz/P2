@@ -104,16 +104,29 @@ Ejercicios
 - Etiquete manualmente los segmentos de voz y silencio del fichero grabado al efecto. Inserte, a 
   continuación, una captura de `wavesurfer` en la que se vea con claridad la señal temporal, el contorno de
   potencia y la tasa de cruces por cero, junto con el etiquetado manual de los segmentos.
+  
+<img width="960" alt="grafica_436" src="https://user-images.githubusercontent.com/91891270/141791159-8816cd69-34cc-4861-9089-fec45534bb06.PNG">
+
 
 
 - A la vista de la gráfica, indique qué valores considera adecuados para las magnitudes siguientes:
 
 	* Incremento del nivel potencia en dB, respecto al nivel correspondiente al silencio inicial, para
 	  estar seguros de que un segmento de señal se corresponde con voz.
+	  
+	  Observant la gràfica veiem que hi ha un augment dentre 7 i 10 dB entre el silenci i la veu.
 
 	* Duración mínima razonable de los segmentos de voz y silencio.
+	
+	Duración minima segmento de voz --> entre (30,70) ms.
+	
+	
+	Duración minima del silenci --> entre (30,50) ms.
+	
 
 	* ¿Es capaz de sacar alguna conclusión a partir de la evolución de la tasa de cruces por cero?
+	
+	Un Zcr alt implicarà la presencia de silenci i un Zcr baix implicarà la presència de veu.
 
 
 ### Desarrollo del detector de actividad vocal
@@ -124,12 +137,30 @@ Ejercicios
 - Inserte una gráfica en la que se vea con claridad la señal temporal, el etiquetado manual y la detección
   automática conseguida para el fichero grabado al efecto. 
 
+<img width="960" alt="lad_vs_vad" src="https://user-images.githubusercontent.com/91891270/141788975-a49eaa47-0245-46c8-96d5-99282403b8d0.PNG">
+
 
 - Explique, si existen. las discrepancias entre el etiquetado manual y la detección automática.
+
+Veiem que en aquest àudio en particular l'etiquetat del detector és significativament diferent a l'etiquetat manual. Si executem l'avaluació amb l'script vad_evaluation.pl veiem que efectivament el resultat del detector en aquest cas perticular no és bo.
+
+<img width="638" alt="analisi_436" src="https://user-images.githubusercontent.com/91891270/141790398-4353f8ea-05fe-4a5e-85d8-6cb5ef51ad46.PNG">
+
+Si ho mirem en altres fitxers de la base de dades veiem que en general l'etiquetat és bo (i que l'avaluació també dóna una Fscore alta).
+
+
+<img width="922" alt="lad_vs_vad_4151" src="https://user-images.githubusercontent.com/91891270/141790573-92af9d1c-06ed-4d11-8b33-874bb3bfa690.PNG">
+
+<img width="656" alt="analisis_4151" src="https://user-images.githubusercontent.com/91891270/141790598-4ee2b731-db0f-43c0-9070-c02464a8b02c.PNG">
+
+A continuació veurem que, en general, la Fscore del sistema és del 92,24% així el baix resultat de l'analisis del nostre propi àudio es pot deure a no haver fet un etiquetat manual gaire precís.
 
 - Evalúe los resultados sobre la base de datos `db.v4` con el script `vad_evaluation.pl` e inserte a 
   continuación las tasas de sensibilidad (*recall*) y precisión para el conjunto de la base de datos (sólo
   el resumen).
+  
+  <img width="642" alt="Resultat_analisi_final" src="https://user-images.githubusercontent.com/91891270/141783593-4b7611cb-9602-4249-9bed-2074c4e0893d.PNG">
+
 
 
 ### Trabajos de ampliación
@@ -144,12 +175,22 @@ Ejercicios
 
 - Si ha usado `docopt_c` para realizar la gestión de las opciones y argumentos del programa `vad`, inserte
   una captura de pantalla en la que se vea el mensaje de ayuda del programa.
+  
+  Hem modificat el docopt de la següent manera:
+  
+  <img width="717" alt="docopt" src="https://user-images.githubusercontent.com/91891270/141787764-510581be-9b09-418c-8f41-367cfb3ac29b.PNG">
+  
+  Els valors assignats a default son els que maximitzen la Fscore del detector. Si executem el programa amb el missateg d'ajuda obtenim el següent:
+  
+  <img width="633" alt="help_docopt" src="https://user-images.githubusercontent.com/91891270/141787936-8a921856-effc-4b54-9e86-5620b705729c.PNG">
 
 
 ### Contribuciones adicionales y/o comentarios acerca de la práctica
 
 - Indique a continuación si ha realizado algún tipo de aportación suplementaria (algoritmos de detección o 
   parámetros alternativos, etc.).
+  
+  Hem fet ús de la feature ZCR per tal de millorar el sistema.
 
 - Si lo desea, puede realizar también algún comentario acerca de la realización de la práctica que
   considere de interés de cara a su evaluación.
